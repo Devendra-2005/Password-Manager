@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # SecureVault – Desktop Password Manager
 
 ![SecureVault Logo](assets/logo.png)
@@ -96,3 +97,7 @@ SecureVault/
 - 📤 **Export & Backup**: CSV / JSON encrypted vault export and import.
 - ⏰ **Auto-Lock Timer**: Lock the vault automatically after a configurable period of user inactivity.
 - 🌐 **Browser Extension Integration**: Auto-fill credentials in web browsers via local API bridge.
+=======
+# Password-Manager
+A modern desktop Password Manager developed using Python, Tkinter, and SQLite. It provides secure credential management, password generation, search functionality, and a user-friendly interface.
+>>>>>>> e89ce3acc1e251b235ec94207c4948ec0d616152
