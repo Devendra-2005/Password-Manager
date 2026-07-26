@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SecureVault – Web Password Manager</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Custom Styling -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- AUTH SECTION (Login & First-Time Setup) -->
+  <div id="auth-container" class="auth-wrapper">
+    <div class="auth-card glass-panel">
+      <div class="auth-header">
+        <div class="auth-icon-wrapper">
+          <span class="auth-icon">🛡️</span>
+        </div>
+        <h1 class="auth-title">SecureVault</h1>
+        <p id="auth-subtitle" class="auth-subtitle">Enter your Master Password to access your credentials.</p>
+      </div>
+
+      <form id="auth-form" onsubmit="handleAuthSubmit(event)">
+        <!-- Setup Mode: Master Password -->
+        <div class="form-group">
+          <label for="master-password" class="form-label">Master Password</label>
+          <div class="input-with-action">
+            <input type="password" id="master-password" class="form-control" placeholder="••••••••••••" required oninput="handlePasswordInput()">
+            <button type="button" class="btn-icon" onclick="togglePasswordVisibility('master-password', this)">👁️</button>
+          </div>
+        </div>
+
+        <!-- Setup Mode: Strength Bar -->
+        <div id="strength-box" class="strength-box hidden">
+          <div class="strength-bar-bg">
+            <div id="strength-bar-fill" class="strength-bar-fill"></div>
+          </div>
+          <span id="strength-label" class="strength-text">Strength: Empty</span>
+        </div>
+
+        <!-- Setup Mode: Confirm Password -->
+        <div id="confirm-pwd-group" class="form-group hidden">
+          <label for="confirm-password" class="form-label">Confirm Master Password</label>
+          <div class="input-with-action">
+            <input type="password" id="confirm-password" class="form-control" placeholder="••••••••••••">
+            <button type="button" class="btn-icon" onclick="togglePasswordVisibility('confirm-password', this)">👁️</button>
+          </div>
+        </div>
+
+        <div id="auth-error" class="alert-error hidden"></div>
+
+        <button type="submit" id="auth-submit-btn" class="btn btn-primary btn-block">
+          <span>🔓 Unlock Vault</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN APP CONTAINER (Dashboard) -->
+  <div id="app-container" class="app-wrapper hidden">
+    
+    <!-- Top Navigation Header -->
+    <header class="topbar glass-header">
+      <div class="topbar-brand">
+        <span class="brand-logo">🛡️</span>
+        <span class="brand-title">SecureVault</span>
+      </div>
+
+      <div class="topbar-actions">
+        <button class="btn btn-secondary" onclick="openGeneratorModal()">
+          <span>⚡ Generator</span>
+        </button>
+        <button class="btn btn-primary" onclick="openAddModal()">
+          <span>➕ Add Credential</span>
+        </button>
+        <button class="btn btn-danger-outline" onclick="handleLogout()">
+          <span>🚪 Logout</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Stats & Quick Metrics Overview -->
+      <div class="metrics-grid">
+        <div class="metric-card glass-card">
+          <div class="metric-icon bg-blue">🔐</div>
+          <div class="metric-info">
+            <span class="metric-value" id="stat-total">0</span>
+            <span class="metric-label">Stored Credentials</span>
+          </div>
+        </div>
+        <div class="metric-card glass-card">
+          <div class="metric-icon bg-emerald">📂</div>
+          <div class="metric-info">
+            <span class="metric-value" id="stat-categories">0</span>
+            <span class="metric-label">Active Categories</span>
+          </div>
+        </div>
+        <div class="metric-card glass-card">
+          <div class="metric-icon bg-amber">⚡</div>
+          <div class="metric-info">
+            <span class="metric-value">256-bit</span>
+            <span class="metric-label">Salted Encryption</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls Card (Search & Category Filter) -->
+      <div class="controls-card glass-card">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" class="search-input" placeholder="Search by website or username..." oninput="handleSearchInput()">
+          <button class="search-clear-btn" onclick="clearSearch()">✕</button>
+        </div>
+
+        <div class="category-pills" id="category-pills">
+          <button class="pill active" data-category="All" onclick="selectCategory('All', this)">All</button>
+          <button class="pill" data-category="Social" onclick="selectCategory('Social', this)">Social</button>
+          <button class="pill" data-category="Banking" onclick="selectCategory('Banking', this)">Banking</button>
+          <button class="pill" data-category="Shopping" onclick="selectCategory('Shopping', this)">Shopping</button>
+          <button class="pill" data-category="Education" onclick="selectCategory('Education', this)">Education</button>
+          <button class="pill" data-category="Work" onclick="selectCategory('Work', this)">Work</button>
+          <button class="pill" data-category="Other" onclick="selectCategory('Other', this)">Other</button>
+        </div>
+      </div>
+
+      <!-- Credentials Table Card -->
+      <div class="table-card glass-card">
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 25%;">Website / App</th>
+                <th style="width: 25%;">Username / Email</th>
+                <th style="width: 15%;">Category</th>
+                <th style="width: 20%;">Password</th>
+                <th style="width: 15%; text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="credentials-tbody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Empty State View -->
+        <div id="empty-state" class="empty-state hidden">
+          <span class="empty-icon">📂</span>
+          <h3>No Credentials Found</h3>
+          <p>Click "Add Credential" to save your first account login securely.</p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ADD / EDIT CREDENTIAL MODAL -->
+  <div id="credential-modal" class="modal-overlay hidden">
+    <div class="modal-card glass-panel">
+      <div class="modal-header">
+        <h2 id="modal-title">➕ Add New Credential</h2>
+        <button class="modal-close" onclick="closeCredentialModal()">✕</button>
+      </div>
+      
+      <form id="credential-form" onsubmit="saveCredential(event)">
+        <input type="hidden" id="cred-id">
+
+        <div class="form-group">
+          <label class="form-label">Website or App Name *</label>
+          <input type="text" id="cred-website" class="form-control" placeholder="e.g. Google, GitHub, Netflix" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Username or Email *</label>
+          <input type="text" id="cred-username" class="form-control" placeholder="e.g. alex@example.com" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password *</label>
+          <div class="input-with-action">
+            <input type="password" id="cred-password" class="form-control" placeholder="••••••••••••" required>
+            <button type="button" class="btn-icon" onclick="togglePasswordVisibility('cred-password', this)">👁️</button>
+            <button type="button" class="btn btn-sm btn-accent" onclick="fillWithGenerator()">⚡ Generate</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select id="cred-category" class="form-control">
+            <option value="Social">Social</option>
+            <option value="Banking">Banking</option>
+            <option value="Shopping">Shopping</option>
+            <option value="Education">Education</option>
+            <option value="Work">Work</option>
+            <option value="Other" selected>Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Notes (Optional)</label>
+          <textarea id="cred-notes" class="form-control" rows="3" placeholder="Security questions, recovery codes, or notes..."></textarea>
+        </div>
+
+        <div id="modal-error" class="alert-error hidden"></div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeCredentialModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">💾 Save Credential</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- PASSWORD GENERATOR MODAL -->
+  <div id="generator-modal" class="modal-overlay hidden">
+    <div class="modal-card glass-panel">
+      <div class="modal-header">
+        <h2>⚡ Secure Password Generator</h2>
+        <button class="modal-close" onclick="closeGeneratorModal()">✕</button>
+      </div>
+
+      <div class="gen-result-card">
+        <input type="text" id="gen-output" class="gen-output" readonly value="Click Generate">
+        <div class="gen-result-actions">
+          <button class="btn btn-sm btn-secondary" onclick="generateNewPassword()">🔄 Regenerate</button>
+          <button class="btn btn-sm btn-primary" onclick="copyGeneratedPassword()">📋 Copy</button>
+        </div>
+      </div>
+
+      <div class="gen-controls-card">
+        <div class="slider-group">
+          <div class="slider-header">
+            <label class="form-label">Password Length:</label>
+            <span id="gen-length-val" class="slider-val">16</span>
+          </div>
+          <input type="range" id="gen-length" min="8" max="32" value="16" oninput="updateGenLength(this.value)">
+        </div>
+
+        <div class="checkbox-grid">
+          <label class="checkbox-item">
+            <input type="checkbox" id="gen-upper" checked onchange="generateNewPassword()"> Uppercase (A-Z)
+          </label>
+          <label class="checkbox-item">
+            <input type="checkbox" id="gen-lower" checked onchange="generateNewPassword()"> Lowercase (a-z)
+          </label>
+          <label class="checkbox-item">
+            <input type="checkbox" id="gen-digits" checked onchange="generateNewPassword()"> Numbers (0-9)
+          </label>
+          <label class="checkbox-item">
+            <input type="checkbox" id="gen-symbols" checked onchange="generateNewPassword()"> Special (!@#$)
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeGeneratorModal()">Close</button>
+        <button type="button" id="btn-use-generated" class="btn btn-success hidden" onclick="useGeneratedPasswordInForm()">✓ Use This Password</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom App Script -->
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
